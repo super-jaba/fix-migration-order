@@ -26,12 +26,11 @@ Renaming is safe -- Alembic links revisions by internal IDs (`revision` / `down_
 
 ## Requirements
 
-- Python >= 3.12
-- No third-party dependencies
+- Python >= 3.12 (no third-party dependencies)
 
 ## Usage
 
-### 1. Set `file_template` in your `alembic.ini`
+### 1. Set `file_template` in your project's `alembic.ini`
 
 Uncomment (or add) the `file_template` line under `[alembic]`:
 
@@ -42,16 +41,33 @@ file_template = %%(year)d_%%(month).2d_%%(day).2d_%%(hour).2d%%(minute).2d-%%(re
 
 See the [Alembic docs](https://alembic.sqlalchemy.org/en/latest/tutorial.html#editing-the-ini-file) for all available tokens.
 
-### 2. Preview changes
+### 2. Run the script
+
+The simplest way is to run `main.py` directly, pointing it at your project's config and migrations:
 
 ```bash
-python main.py --dry-run
+python /path/to/fix-migration-order/main.py \
+  --alembic-config /path/to/your-project/alembic.ini \
+  --alembic-migrations /path/to/your-project/alembic/versions
 ```
 
-### 3. Rename
+If your working directory is already the project root (where `alembic.ini` lives), the defaults apply and no flags are needed:
 
 ```bash
-python main.py
+python /path/to/fix-migration-order/main.py
+```
+
+Add `--dry-run` to preview renames without touching the filesystem:
+
+```bash
+python /path/to/fix-migration-order/main.py --dry-run
+```
+
+If you installed the package (e.g. via `uv pip install`), you can use the `fix-migrations` command instead:
+
+```bash
+fix-migrations --dry-run
+fix-migrations --alembic-config path/to/alembic.ini --alembic-migrations path/to/versions
 ```
 
 ### CLI reference
@@ -66,23 +82,6 @@ usage: fix-migration-order [-h] [--alembic-config PATH]
 | `--alembic-config PATH` | `./alembic.ini` | Path to your Alembic config file |
 | `--alembic-migrations PATH` | `./alembic/versions` | Path to the migrations directory |
 | `--dry-run` | off | Print renames without touching the filesystem |
-
-### Examples
-
-Default paths (run from your project root):
-
-```bash
-python main.py --dry-run
-```
-
-Custom paths:
-
-```bash
-python main.py \
-  --alembic-config path/to/alembic.ini \
-  --alembic-migrations path/to/alembic/versions \
-  --dry-run
-```
 
 ## Supported template tokens
 
@@ -103,7 +102,8 @@ All tokens from Alembic's `file_template` are supported:
 ## How it works
 
 1. Reads `file_template` (and optionally `truncate_slug_length`) from `alembic.ini`
-2. Scans the migrations directory for `.py` files
+2. Recursively scans the migrations directory for `.py` files (supports both flat and subdirectory layouts)
 3. Parses each file's docstring header to extract the revision ID, message, and create date
 4. Generates the expected filename using the same algorithm as Alembic itself
 5. Renames files that don't match (skips files that already do)
+6. Cleans up empty subdirectories left behind after renames
