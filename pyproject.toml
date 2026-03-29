@@ -3,6 +3,7 @@ name = "fix-migration-order"
 version = "0.1.0"
 description = "Fix your alembic migrations"
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.12"
 dependencies = []
 
